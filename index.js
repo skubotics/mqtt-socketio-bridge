@@ -92,8 +92,13 @@ io.sockets.on('connection', function(sock) {
 app.use(express.static('static_files'))
 
 // Set up web server to serve 
-app.get('/', function(req, res) {
+app.get('/dashboard', function(req, res) {
         res.sendFile(__dirname+"/static_files/mqtt-socket.html")
+})
+
+// Set up web server to serve 
+app.get('/', function(req, res) {
+        res.sendFile(__dirname+"/static_files/mqtt-watcher.html")
 })
 
 http.listen(port, function() {

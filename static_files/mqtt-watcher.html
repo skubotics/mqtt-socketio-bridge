@@ -1,0 +1,64 @@
+<!DOCTYPE html">
+<html>
+
+<head>
+        <title>MQTT Watcher</title>
+
+        <style>
+                body {
+                        margin: 0;
+                        font-family: Verdana, "Helvetica Neue", Arial, sans-serif;
+                }
+
+                header {
+                        padding: 1em;
+                        background: #303034;
+                        color: white
+                }
+
+                header h1 {
+                        margin: 0
+                }
+
+                section {
+                        padding: 1em;
+                }
+
+                li {
+                        font-family: Monospace;
+                        font-size: larger;
+                }
+        </style>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+        <script>
+                // Bring up a socket.io connection
+                var socket = io.connect()
+                socket.on('connect', function () {
+                        socket.emit('subscribe', { 'topic': 'test' })
+                })
+                // Set up callback for whenever an MQTT message arrives
+                socket.on('mqtt', function (msg) {
+                        console.log("message: [" + msg.topic + "] >>" + msg.payload + "<<")
+                        // For this example page, we'll just push the new
+                        // to the top of a simple list
+                        $('#messages').prepend("<li>[" + msg.topic + "] " + msg.payload + "</li>")
+                })
+        </script>
+
+</head>
+
+<body>
+        <header>
+                <h1>MQTT Watcher</h1>
+        </header>
+
+        <section>
+                <h2>Messages Received</h2>
+                <ul id="messages">
+                </ul>
+        </section>
+</body>
+
+</html>
