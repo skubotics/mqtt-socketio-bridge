@@ -17,7 +17,7 @@ var topicMatch = function(topic1, topic2) {
 
 var client = mqtt.connect(MQTT_BROKER)
 client.on('connect', function() {
-        console.log("Connected to "+MQRS.T_BROKER);
+        console.log("Connected to "+MQTT_BROKER);
 })
 
 client.on('message', function(topic, payload) {
