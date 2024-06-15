@@ -1,0 +1,130 @@
+<!DOCTYPE html">
+<html>
+
+<head>
+        <title>MQTT Tester</title>
+
+        <style>
+                body {
+                        margin: 0;
+                        font-family: Verdana, "Helvetica Neue", Arial, sans-serif;
+                }
+
+                span {
+                        color: #5b5;
+                        font-weight: bold;
+                }
+
+                code {
+                        background: #ccd;
+                        padding: 2px 5px;
+                        border-width: 1px;
+                        border-color: #aaa;
+                        border-radius: 3px
+                }
+
+                header {
+                        padding: 1em;
+                        background: #303034;
+                        color: white
+                }
+
+                header a {
+                        color: white
+                }
+
+                header h1 {
+                        margin: 0
+                }
+
+                #credits {
+                        float: right;
+                }
+
+                #credits div {
+                        float: left;
+                        text-align: right;
+                        margin-right: 0.5em;
+                }
+
+                section {
+                        padding: 1em;
+                }
+
+                li {
+                        font-family: Monospace;
+                        font-size: larger;
+                }
+        </style>
+        <!-- Pull in the socket.io library -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+        <!-- Include jQuery, just used here for some of the DOM manipulation and
+             AJAX calls.  Not *required* for the MQTT-SocketIO bridge itself -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+        <script>
+                // Bring up a socket.io connection
+                var socket = io.connect()
+                socket.on('connect', function () {
+                        // Subscribe to the topic(s) we're interested in
+                        // Uncomment this line if you want to automatically subscribe to a topic
+                        //socket.emit('subscribe', { 'topic': 'mcqn/#' })
+                })
+                // Set up callback for whenever an MQTT message arrives
+                socket.on('mqtt', function (msg) {
+                        console.log("message: [" + msg.topic + "] >>" + msg.payload + "<<")
+                        // For this example page, we'll just push the new message
+                        // to the top of a simple list
+                        $('#messages').prepend("<li>[" + msg.topic + "] " + msg.payload + "</li>")
+                })
+        </script>
+
+</head>
+
+<body>
+        <header>
+                <div id='credits'>
+                        <a href="https://skubotics.in">Skubotics</a>
+                        <div>
+                                <a href="https://github.com/skubotics/mqtt-socketio-bridge">code</a>
+                        </div>
+                </div>
+                <h1>Simple Demo of MQTT-to-Socket.IO-Bridge</h1>
+                <br clear="both" />
+        </header>
+
+        <section>
+                <h2>Subscribe</h2>
+                <form id='subscribe' method='post'>
+                        <label for="subs_topic">Topic</label>
+                        <input name="subs_topic" id="subs_topic" type="text" />
+                        <input name="subscribe" type="submit" value="subscribe"
+                                onclick="$('#subs_status').text('Working...').show(); socket.emit('subscribe', { 'topic': $('#subs_topic')[0].value }); $('#subs_status').text('Ok').fadeOut(2000); return false;" />
+                        <span id="subs_status"></span>
+                </form>
+        </section>
+
+        <section>
+                <h2>Publish</h2>
+                <form id='publish' method='post'>
+                        <label for="pub_topic">Topic</label>
+                        <input id="pub_topic" name="pub_topic" type="text" />
+                        <label for="pub_payload">Payload</label>
+                        <input id="pub_payload" name="pub_payload" type="text" />
+                        <input name="publish" type="submit" value="publish"
+                                onclick="$('#pub_status').text('Working...').show(); socket.emit('publish', { 'topic': $('#pub_topic')[0].value, 'payload': $('#pub_payload')[0].value }); $('#pub_status').text('Ok').fadeOut(2000); return false;" />
+                        <span id="pub_status"></span>
+                </form>
+        </section>
+
+        <section>
+                <h2>Messages Received</h2>
+                <p>Once you have subscribed to at least one topic, any messages received will be shown below in the form
+                        <code>[topic name] payload</code>.
+
+                <ul id="messages">
+                </ul>
+        </section>
+</body>
+
+</html>
