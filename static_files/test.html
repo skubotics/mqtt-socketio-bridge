@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Socket.IO Client</title>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #status {
+            color: blue;
+        }
+        #errors {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Client</h1>
+    <div id="status">Status: Not connected</div>
+    <div id="errors"></div>
+    <script>
+        var socket = io('http://localhost:3000',{
+    pingTimeout: 25000, // How many ms without a pong packet to consider the connection closed
+    pingInterval: 10000  // How many ms before sending a new ping packet
+}
+);
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            document.getElementById('status').textContent = 'Status: Connected';
+        });
+
+        socket.on('disconnect', function(reason) {
+            console.log('Disconnected from server, Reason:', reason);
+            document.getElementById('status').textContent = `Status: Disconnected, Reason: ${reason}`;
+        });
+
+        socket.on('connect_error', function(error) {
+            console.log('Connection Error:', error);
+            document.getElementById('errors').textContent = `Connection Error: ${error.message}`;
+        });
+
+        socket.on('reconnect_attempt', () => {
+            console.log('Attempting to reconnect...');
+            document.getElementById('status').textContent = 'Status: Reconnecting...';
+        });
+
+        socket.on('reconnect_failed', () => {
+            console.log('Reconnection Failed');
+            document.getElementById('errors').textContent = 'Reconnection Failed';
+        });
+
+        socket.on('error', function(error) {
+            console.log('Error:', error);
+            document.getElementById('errors').textContent = `Error: ${error}`;
+        });
+    </script>
+</body>
+</html>
