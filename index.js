@@ -73,7 +73,9 @@ io.sockets.on('connection', function(sock) {
 app.use(express.static('static_files'))
 
 // Use Cors
-app.use(cors());
+app.use(cors({
+    origin: '*'
+}));
 
 // Routes
 app.get('/dashboard', function(req, res) {
