@@ -3,6 +3,7 @@ var express = require('express')
 var app = express()
 var http = require('http').Server(app)
 var io = require('socket.io')(http)
+var cors = require('cors');
 
 // Port that the web server should listen on
 var port = process.env.PORT || 3000;
@@ -70,6 +71,9 @@ io.sockets.on('connection', function(sock) {
 
 // Static file handling
 app.use(express.static('static_files'))
+
+// Use Cors
+app.use(cors());
 
 // Routes
 app.get('/dashboard', function(req, res) {
