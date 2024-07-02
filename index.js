@@ -49,7 +49,7 @@ mqttClient.on('message', async function (topic, payload) {
 
     incomingData = payload.toString();
 
-    let pattern = /^CPU1#ADC1#(-?\d+(\.\d+)?,)*(-?\d+(\.\d+)?)$/;
+    let pattern = /^CPU\d+#ADC\d+#(-?\d+(\.\d+)?,)*(-?\d+(\.\d+)?)$/;
 
     if (pattern.test(incomingData)) {
       const [cpu, adc, values] = incomingData.split('#', 3);
