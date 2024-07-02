@@ -109,7 +109,7 @@ app.delete('/cleardb', async (req, res) => {
     const collection = db.collection("test");
     const result = await collection.deleteMany({});
     console.log(`${result.deletedCount} documents were deleted`);
-    res.send(`${result.deletedCount}`);
+    res.send(`${result.deletedCount} documents were deleted`);
   } catch (err) {
     console.error("Error deleting documents:", err);
     res.status(500).send("Failed to delete documents");
