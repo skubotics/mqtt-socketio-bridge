@@ -127,10 +127,23 @@ app.post('/history', async (req, res) => {
     const db = mongoClient.db("test");
     const collection = db.collection("test");
 
-    const records = await collection.find({ device: { $in: deviceIds } })
-      .sort({ time: 1 })
-      .limit(30)
-      .toArray();
+    const records = await collection.aggregate([
+      { $match: { device: { $in: deviceIds } } },
+      { $sort: { device: 1, time: -1 } },
+      {
+        $group: {
+          _id: "$device",
+          data: { $push: { time: "$time", value: "$value" } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          device: "$_id",
+          data: { $slice: ["$data", 30] }
+        }
+      }
+    ]).toArray();
 
     res.json(records);
   } catch (err) {
