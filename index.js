@@ -57,7 +57,7 @@ mqttClient.on('message', async function (topic, payload) {
       const documents = [];
 
       valuesList.forEach((value, index) => {
-        result.push(`${cpu}#${adc}#CH${index + 1}#${value}`);
+        result.push(`${cpu}#${adc}#CH${index + 1}#${value}#${date}T${time}Z`);
         documents.push({
           device: `${cpu}#${adc}#CH${index + 1}`,
           value: value,
