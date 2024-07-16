@@ -48,21 +48,20 @@ mqttClient.on('message', async function (topic, payload) {
   if (topic === MQTT_TOPIC) {
 
     incomingData = payload.toString();
-
-    let pattern = /^CPU\d+#ADC\d+#(-?\d+(\.\d+)?,)*(-?\d+(\.\d+)?)$/;
+    let pattern = /^CPU\d+#ADC\d+#(-?\d+(\.\d+)?,)*(-?\d+(\.\d+)?)#(\d{4}-\d{2}-\d{2})#(\d{2}:\d{2}:\d{2})$/;
 
     if (pattern.test(incomingData)) {
-      const [cpu, adc, values] = incomingData.split('#', 3);
+      const [cpu, adc, values, date, time] = incomingData.split('#');
       const valuesList = values.split(',');
-      const result = []
-      const documents = []
+      const result = [];
+      const documents = [];
 
       valuesList.forEach((value, index) => {
-        result.push(`${cpu}#${adc}#CH${index + 1}#${value}`)
+        result.push(`${cpu}#${adc}#CH${index + 1}#${value}`);
         documents.push({
           device: `${cpu}#${adc}#CH${index + 1}`,
           value: value,
-          time: moment().tz("Asia/Kolkata").format()
+          time: `${date}T${time}Z`
         })
       });
 
@@ -80,9 +79,9 @@ mqttClient.on('message', async function (topic, payload) {
     } else {
       io.emit('mqtt', { 'topic': topic, 'payload': incomingData });
     }
-
   }
 });
+
 
 io.on('connection', function (sock) {
   console.log("New connection from " + sock.id);
