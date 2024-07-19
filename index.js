@@ -116,10 +116,14 @@ app.delete('/cleardb', async (req, res) => {
 
 app.post('/history', async (req, res) => {
   const deviceIds = req.body.deviceIds;
+  const page = parseInt(req.body.page) || 1;
+  const limit = parseInt(req.body.limit) || 30;
 
   if (!deviceIds || deviceIds.length === 0) {
     return res.status(400).send("No device IDs provided.");
   }
+
+  const skip = (page - 1) * limit;
 
   try {
     const db = mongoClient.db("test");
@@ -138,7 +142,7 @@ app.post('/history', async (req, res) => {
         $project: {
           _id: 0,
           device: "$_id",
-          data: { $slice: ["$data", 30] }
+          data: { $slice: ["$data", skip, limit] }
         }
       }
     ]).toArray();
