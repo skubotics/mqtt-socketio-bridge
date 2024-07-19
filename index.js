@@ -7,7 +7,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const moment = require('moment-timezone');
 
 const port = process.env.PORT || 3000;
 const MQTT_BROKER = process.env.MQTT_BROKER || "mqtt://13.235.151.163";
