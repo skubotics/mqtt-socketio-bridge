@@ -118,6 +118,8 @@ app.post('/history', async (req, res) => {
   const deviceIds = req.body.deviceIds;
   const page = parseInt(req.body.page) || 1;
   const limit = parseInt(req.body.limit) || 30;
+  const startDate = req.body.startDate ? new Date(req.body.startDate) : null;
+  const endDate = req.body.endDate ? new Date(req.body.endDate) : null;
 
   if (!deviceIds || deviceIds.length === 0) {
     return res.status(400).send("No device IDs provided.");
@@ -129,8 +131,19 @@ app.post('/history', async (req, res) => {
     const db = mongoClient.db("test");
     const collection = db.collection("test");
 
+    // Construct the match object based on optional parameters
+    let match = { device: { $in: deviceIds } };
+
+    if (startDate && endDate) {
+      match.time = { $gte: startDate, $lte: endDate };
+    } else if (startDate) {
+      match.time = { $gte: startDate };
+    } else if (endDate) {
+      match.time = { $lte: endDate };
+    }
+
     const records = await collection.aggregate([
-      { $match: { device: { $in: deviceIds } } },
+      { $match: match },
       { $sort: { device: 1, time: -1 } },
       {
         $group: {
