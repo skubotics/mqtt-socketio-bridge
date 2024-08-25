@@ -12,9 +12,33 @@ const client = new Client({
     }
 });
 
-client.connect()
-    .then(() => {
-        console.log('Connected to PostgreSQL RDS!')
-        console.log('Process Variables: ', process.env)
-    })
-    .catch(err => console.error('Connection error', err.stack));
+// Function to create a table
+async function createTable() {
+    try {
+        await client.connect();
+        console.log('Connected to PostgreSQL RDS!');
+
+        // Define the SQL statement to create the table
+        const createTableQuery = `
+            CREATE TABLE IF NOT EXISTS data (
+                id SERIAL PRIMARY KEY,
+                device VARCHAR(20) NOT NULL,
+                value NUMERIC(10, 3) NOT NULL,
+                time TIMESTAMPTZ NOT NULL
+            );
+        `;
+
+        // Execute the SQL statement to create the table
+        await client.query(createTableQuery);
+        console.log('Table "data" created successfully.');
+
+    } catch (err) {
+        console.error('Error creating table:', err.stack);
+    } finally {
+        // End the client connection
+        await client.end();
+    }
+}
+
+// Call the function to create the table
+createTable();
