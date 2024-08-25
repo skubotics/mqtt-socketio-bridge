@@ -13,5 +13,8 @@ const client = new Client({
 });
 
 client.connect()
-    .then(() => console.log('Connected to PostgreSQL RDS!'))
+    .then(() => {
+        console.log('Connected to PostgreSQL RDS!')
+        console.log('Process Variables: ', process.env)
+    })
     .catch(err => console.error('Connection error', err.stack));
