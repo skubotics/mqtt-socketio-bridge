@@ -152,7 +152,7 @@ app.post('/history', async (req, res) => {
         // Execute the SQL statement to fetch records
         const { rows: records } = await client.query(fetchQuery, [limit, offset]);
 
-        // Group records by device and format the response
+        // Group records by device
         const groupedRecords = records.reduce((acc, record) => {
             if (!acc[record.device]) {
                 acc[record.device] = [];
@@ -161,7 +161,7 @@ app.post('/history', async (req, res) => {
             return acc;
         }, {});
 
-        // Ensure all requested devices are included, even if they have no data
+        // Create response ensuring all requested devices are included
         const response = deviceIds.map(deviceId => ({
             device: deviceId,
             data: groupedRecords[deviceId] || []
@@ -173,7 +173,6 @@ app.post('/history', async (req, res) => {
         res.status(500).send("Failed to retrieve data");
     }
 });
-
 
 http.listen(port, function () {
     console.log("Server listening on port " + port);
