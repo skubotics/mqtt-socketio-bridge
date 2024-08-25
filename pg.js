@@ -41,9 +41,6 @@ async function createTable() {
 // Function to insert multiple rows into the table
 async function insertMultipleValues(records) {
     try {
-        await client.connect();
-        console.log('Connected to PostgreSQL RDS!');
-
         // Define the SQL statement to insert multiple rows
         const insertQuery = `
             INSERT INTO data (device, value, time)
@@ -63,9 +60,6 @@ async function insertMultipleValues(records) {
 // Function to delete all rows from the table but keep the table structure
 async function deleteAllRows() {
     try {
-        await client.connect();
-        console.log('Connected to PostgreSQL RDS!');
-
         // Define the SQL statement to delete all rows
         const deleteQuery = `DELETE FROM data;`;
 
@@ -81,9 +75,6 @@ async function deleteAllRows() {
 // Function to fetch all records from the table
 async function fetchAllRecords() {
     try {
-        await client.connect();
-        console.log('Connected to PostgreSQL RDS!');
-
         // Define the SQL statement to fetch all records
         const fetchQuery = `SELECT * FROM data;`;
 
@@ -98,29 +89,34 @@ async function fetchAllRecords() {
     }
 }
 
-// Example Usage
-
+// Main function to orchestrate the operations
 async function main() {
-    // await createTable();
+    try {
+        await client.connect(); // Connect to the database once
 
-    // Insert multiple values
-    const records = [
-        { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
-        { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
-        { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
-    ];
-    await insertMultipleValues(records);
+        // Create the table
+        // await createTable();
 
-    // Fetch all records
-    await fetchAllRecords();
+        // Insert multiple values
+        const records = [
+            { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
+            { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
+            { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
+        ];
+        // await insertMultipleValues(records);
 
-    // Delete all rows (if needed)
-    await deleteAllRows();
+        // Fetch all records
+        await fetchAllRecords();
+
+        // Optionally delete all rows
+        // await deleteAllRows();
+
+    } catch (err) {
+        console.error('Error in main execution:', err.stack);
+    } finally {
+        await client.end(); // Ensure the client is always ended
+    }
 }
 
-main().catch(err => {
-    console.error('Error in main execution:', err.stack);
-}).finally(() => {
-    console.log('Completed')
-    client.end(); // Ensure the client is always ended
-});
+// Run the main function
+main();
