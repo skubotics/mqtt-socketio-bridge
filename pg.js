@@ -106,10 +106,10 @@ async function main() {
         // await insertMultipleValues(records);
 
         // Fetch all records
-        await fetchAllRecords();
+        // await fetchAllRecords();
 
         // Optionally delete all rows
-        // await deleteAllRows();
+        await deleteAllRows();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
