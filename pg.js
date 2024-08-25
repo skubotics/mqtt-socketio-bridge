@@ -120,34 +120,28 @@ app.post('/history', async (req, res) => {
     }
 
     try {
-        const client = await pool.connect();
-
         // Construct the base query
         let query = `
-        SELECT device, time, value
-        FROM device_data
-        WHERE device = ANY($1)
-      `;
+            SELECT device, time, value
+            FROM data
+            WHERE device = ANY($1)
+        `;
 
         // Add date filtering if provided
+        const values = [deviceIds];
         if (startDate && endDate) {
             query += ` AND time BETWEEN $2 AND $3`;
+            values.push(new Date(startDate), new Date(endDate));
         } else if (startDate) {
             query += ` AND time >= $2`;
+            values.push(new Date(startDate));
         } else if (endDate) {
             query += ` AND time <= $2`;
+            values.push(new Date(endDate));
         }
 
         // Add sorting
         query += ` ORDER BY device ASC, time DESC`;
-
-        // Prepare the values for the query
-        const values = [deviceIds];
-        if (startDate && endDate) {
-            values.push(new Date(startDate), new Date(endDate));
-        } else if (startDate || endDate) {
-            values.push(new Date(startDate || endDate));
-        }
 
         // Execute the query
         const result = await client.query(query, values);
@@ -171,10 +165,9 @@ app.post('/history', async (req, res) => {
     } catch (err) {
         console.error("Error fetching data from PostgreSQL:", err);
         res.status(500).send("Failed to retrieve data");
-    } finally {
-        client.release();
     }
 });
+
 
 http.listen(port, function () {
     console.log("Server listening on port " + port);
