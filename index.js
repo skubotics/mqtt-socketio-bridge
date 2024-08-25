@@ -62,9 +62,6 @@ mqttClient.on('message', async function (topic, payload) {
 
       io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(result) });
 
-      // const db = mongoClient.db("test");
-      // const collection = db.collection("test");
-
       try {
         client.query('SELECT NOW()', (err, res) => {
           if (err) {

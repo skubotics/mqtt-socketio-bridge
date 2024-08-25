@@ -62,19 +62,22 @@ mqttClient.on('message', async function (topic, payload) {
           device: `${cpu}#${adc}#CH${index + 1}`,
           value: value,
           time: `${date}T${time}Z`
-        })
+        });
       });
 
       io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(result) });
 
-      const db = mongoClient.db(process.env.MONGODB_DB_NAME);
-      const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
+      const insertQuery = `
+        INSERT INTO data (device, value, time)
+        VALUES
+        ${documents.map(record => `('${record.device}', ${record.value}, '${record.time}')`).join(', ')}
+    `;
 
       try {
-        await collection.insertMany(documents);
-        console.log("Data inserted into MongoDB");
+        await client.query(insertQuery);
+        console.log("Data inserted into PostgreSQL");
       } catch (err) {
-        console.error("Failed to insert data into MongoDB", err);
+        console.error("Failed to insert data into PostgreSQL", err);
       }
     } else {
       io.emit('mqtt', { 'topic': topic, 'payload': incomingData });
@@ -104,14 +107,13 @@ app.get('/', function (req, res) {
 
 app.delete('/cleardb', async (req, res) => {
   try {
-    const db = mongoClient.db(process.env.MONGODB_DB_NAME);
-    const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
-    const result = await collection.deleteMany({});
-    console.log(`${result.deletedCount} documents were deleted`);
-    res.send(`${result.deletedCount} documents were deleted`);
+    const deleteQuery = `DELETE FROM data;`;
+    const result = await client.query(deleteQuery);
+    console.log(`${result.rowCount} rows were deleted`);
+    res.send(`${result.rowCount} rows were deleted`);
   } catch (err) {
-    console.error("Error deleting documents:", err);
-    res.status(500).send("Failed to delete documents");
+    console.error("Error deleting rows:", err);
+    res.status(500).send("Failed to delete rows");
   }
 });
 
@@ -126,47 +128,52 @@ app.post('/history', async (req, res) => {
     return res.status(400).send("No device IDs provided.");
   }
 
-  const skip = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
   try {
-    const db = mongoClient.db(process.env.MONGODB_DB_NAME);
-    const collection = db.collection(process.env.MONGODB_COLLECTION_NAME);
-
-    // Construct the match object based on optional parameters
-    let match = { device: { $in: deviceIds } };
-
-    if (startDate && endDate) {
-      match.time = { $gte: startDate, $lte: endDate };
-    } else if (startDate) {
-      match.time = { $gte: startDate };
-    } else if (endDate) {
-      match.time = { $lte: endDate };
+    let whereConditions = [];
+    if (deviceIds.length > 0) {
+      whereConditions.push(`device IN (${deviceIds.map(id => `'${id}'`).join(', ')})`);
+    }
+    if (startDate) {
+      whereConditions.push(`time >= '${startDate.toISOString()}'`);
+    }
+    if (endDate) {
+      whereConditions.push(`time <= '${endDate.toISOString()}'`);
     }
 
-    const records = await collection.aggregate([
-      { $match: match },
-      { $sort: { device: 1, time: -1 } },
-      {
-        $group: {
-          _id: "$device",
-          data: { $push: { time: "$time", value: "$value" } }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          device: "$_id",
-          data: { $slice: ["$data", skip, limit] }
-        }
-      }
-    ]).toArray();
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    res.json(records);
+    const fetchQuery = `
+      SELECT device, time, value
+      FROM data
+      ${whereClause}
+      ORDER BY device ASC, time DESC
+      LIMIT $1 OFFSET $2;
+    `;
+
+    const { rows: records } = await client.query(fetchQuery, [limit, offset]);
+
+    const groupedRecords = records.reduce((acc, record) => {
+      if (!acc[record.device]) {
+        acc[record.device] = [];
+      }
+      acc[record.device].push({ time: record.time, value: record.value });
+      return acc;
+    }, {});
+
+    const response = Object.keys(groupedRecords).map(device => ({
+      device,
+      data: groupedRecords[device]
+    }));
+
+    res.json(response);
   } catch (err) {
-    console.error("Error fetching data from MongoDB:", err);
+    console.error("Error fetching data from PostgreSQL:", err);
     res.status(500).send("Failed to retrieve data");
   }
 });
+
 
 http.listen(port, function () {
   console.log("Server listening on port " + port);
