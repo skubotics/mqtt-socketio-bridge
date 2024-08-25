@@ -1,7 +1,17 @@
 require('dotenv').config();
+const mqtt = require('mqtt');
+const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+const cors = require('cors');
+const bodyParser = require('body-parser');
 const { Client } = require('pg');
 
-// Create a new client instance with configuration from environment variables
+const port = process.env.PORT;
+const MQTT_BROKER = process.env.MQTT_BROKER;
+const MQTT_TOPIC = process.env.MQTT_TOPIC;
+
 const client = new Client({
     host: process.env.RDS_ENDPOINT,
     port: 5432,
@@ -13,110 +23,152 @@ const client = new Client({
     }
 });
 
-// Function to create a table
-async function createTable() {
-    try {
-        await client.connect();
-        console.log('Connected to PostgreSQL RDS!');
+client.connect()
+    .then(() => console.log('Connected to PostgreSQL RDS!'))
+    .catch(err => console.error('Connection error', err.stack));
 
-        // Define the SQL statement to create the table
-        const createTableQuery = `
-            CREATE TABLE IF NOT EXISTS data (
-                id SERIAL PRIMARY KEY,
-                device VARCHAR(20) NOT NULL,
-                value NUMERIC(10, 3) NOT NULL,
-                time TIMESTAMPTZ NOT NULL
-            );
-        `;
+const mqttClient = mqtt.connect(MQTT_BROKER);
+mqttClient.on('connect', function () {
+    console.log("Connected to " + MQTT_BROKER);
+    mqttClient.subscribe(MQTT_TOPIC, function (err) {
+        if (!err) {
+            console.log("Subscribed to topic: " + MQTT_TOPIC);
+        } else {
+            console.error("Failed to subscribe to topic: " + MQTT_TOPIC, err);
+        }
+    });
+});
 
-        // Execute the SQL statement to create the table
-        await client.query(createTableQuery);
-        console.log('Table "data" created successfully.');
+mqttClient.on('message', async function (topic, payload) {
+    if (topic === MQTT_TOPIC) {
 
-    } catch (err) {
-        console.error('Error creating table:', err.stack);
+        incomingData = payload.toString();
+        let pattern = /^CPU\d+#ADC\d+#(((-?\d+(\.\d+)?|[Xx]),)*(-?\d+(\.\d+)?|[Xx]))#(\d{4}-\d{2}-\d{2})#(\d{2}:\d{2}:\d{2})$/;
+
+        if (pattern.test(incomingData)) {
+            const [cpu, adc, values, date, time] = incomingData.split('#');
+            const valuesList = values.split(',');
+            const result = [];
+            const documents = [];
+
+            valuesList.forEach((value, index) => {
+                result.push(`${cpu}#${adc}#CH${index + 1}#${value}#${date}T${time}Z`);
+                documents.push({
+                    device: `${cpu}#${adc}#CH${index + 1}`,
+                    value: value,
+                    time: `${date}T${time}Z`
+                });
+            });
+
+            io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(result) });
+
+            const insertQuery = `
+                INSERT INTO data (device, value, time)
+                VALUES
+                ${documents.map(record => `('${record.device}', ${record.value}, '${record.time}')`).join(', ')}
+            `;
+
+            try {
+                await client.query(insertQuery);
+                console.log("Data inserted into PostgreSQL");
+            } catch (err) {
+                console.error("Failed to insert data into PostgreSQL", err);
+            }
+        } else {
+            io.emit('mqtt', { 'topic': topic, 'payload': incomingData });
+        }
     }
-}
+});
 
-// Function to insert multiple rows into the table
-async function insertMultipleValues(records) {
+io.on('connection', function (sock) {
+    console.log("New connection from " + sock.id);
+
+    sock.on('disconnect', function () {
+        console.log("Socket disconnected: " + sock.id);
+    });
+});
+
+app.use(express.static('static_files'));
+
+app.use(cors({
+    origin: '*'
+}));
+
+app.use(bodyParser.json());
+
+app.get('/', function (req, res) {
+    res.sendFile(__dirname + "/static_files/mqtt-watcher.html");
+});
+
+app.delete('/cleardb', async (req, res) => {
     try {
-        // Define the SQL statement to insert multiple rows
-        const insertQuery = `
-            INSERT INTO data (device, value, time)
-            VALUES
-            ${records.map(record => `('${record.device}', ${record.value}, '${record.time}')`).join(', ')}
-        `;
-
-        // Execute the SQL statement to insert multiple rows
-        await client.query(insertQuery);
-        console.log('Records inserted successfully.');
-
-    } catch (err) {
-        console.error('Error inserting records:', err.stack);
-    }
-}
-
-// Function to delete all rows from the table but keep the table structure
-async function deleteAllRows() {
-    try {
-        // Define the SQL statement to delete all rows
         const deleteQuery = `DELETE FROM data;`;
-
-        // Execute the SQL statement to delete all rows
-        await client.query(deleteQuery);
-        console.log('All rows deleted from table.');
-
+        const result = await client.query(deleteQuery);
+        console.log(`${result.rowCount} rows were deleted`);
+        res.send(`${result.rowCount} rows were deleted`);
     } catch (err) {
-        console.error('Error deleting rows:', err.stack);
+        console.error("Error deleting rows:", err);
+        res.status(500).send("Failed to delete rows");
     }
-}
+});
 
-// Function to fetch all records from the table
-async function fetchAllRecords() {
+app.post('/history', async (req, res) => {
+    const deviceIds = req.body.deviceIds;
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 30;
+    const startDate = req.body.startDate ? new Date(req.body.startDate) : null;
+    const endDate = req.body.endDate ? new Date(req.body.endDate) : null;
+
+    if (!deviceIds || deviceIds.length === 0) {
+        return res.status(400).send("No device IDs provided.");
+    }
+
+    const offset = (page - 1) * limit;
+
     try {
-        // Define the SQL statement to fetch all records
-        const fetchQuery = `SELECT * FROM data;`;
+        let whereConditions = [];
+        if (deviceIds.length > 0) {
+            whereConditions.push(`device IN (${deviceIds.map(id => `'${id}'`).join(', ')})`);
+        }
+        if (startDate) {
+            whereConditions.push(`time >= '${startDate.toISOString()}'`);
+        }
+        if (endDate) {
+            whereConditions.push(`time <= '${endDate.toISOString()}'`);
+        }
 
-        // Execute the SQL statement to fetch all records
-        const res = await client.query(fetchQuery);
-        console.log('Fetched records:', res.rows);
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-        return res.rows; // Return the fetched records
+        const fetchQuery = `
+        SELECT device, time, value
+        FROM data
+        ${whereClause}
+        ORDER BY device ASC, time DESC
+        LIMIT $1 OFFSET $2;
+        `;
 
+        const { rows: records } = await client.query(fetchQuery, [limit, offset]);
+
+        const groupedRecords = records.reduce((acc, record) => {
+            if (!acc[record.device]) {
+                acc[record.device] = [];
+            }
+            acc[record.device].push({ time: record.time, value: record.value });
+            return acc;
+        }, {});
+
+        const response = Object.keys(groupedRecords).map(device => ({
+            device,
+            data: groupedRecords[device]
+        }));
+
+        res.json(response);
     } catch (err) {
-        console.error('Error fetching records:', err.stack);
+        console.error("Error fetching data from PostgreSQL:", err);
+        res.status(500).send("Failed to retrieve data");
     }
-}
+});
 
-// Main function to orchestrate the operations
-async function main() {
-    try {
-        await client.connect(); // Connect to the database once
-
-        // Create the table
-        // await createTable();
-
-        // Insert multiple values
-        const records = [
-            { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
-            { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
-            { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
-        ];
-        // await insertMultipleValues(records);
-
-        // Fetch all records
-        await fetchAllRecords();
-
-        // Optionally delete all rows
-        // await deleteAllRows();
-
-    } catch (err) {
-        console.error('Error in main execution:', err.stack);
-    } finally {
-        await client.end(); // Ensure the client is always ended
-    }
-}
-
-// Run the main function
-main();
+http.listen(port, function () {
+    console.log("Server listening on port " + port);
+});
