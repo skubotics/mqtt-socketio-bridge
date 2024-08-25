@@ -48,7 +48,7 @@ mqttClient.on('message', async function (topic, payload) {
   if (topic === MQTT_TOPIC) {
 
     incomingData = payload.toString();
-    let pattern = process.env.MQTT_DATA_PATTERN;
+    let pattern = /^CPU\d+#ADC\d+#(((-?\d+(\.\d+)?|[Xx]),)*(-?\d+(\.\d+)?|[Xx]))#(\d{4}-\d{2}-\d{2})#(\d{2}:\d{2}:\d{2})$/;
 
     if (pattern.test(incomingData)) {
       const [cpu, adc, values, date, time] = incomingData.split('#');
