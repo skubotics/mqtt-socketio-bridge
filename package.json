@@ -2,9 +2,9 @@
   "name": "mqtt-socketio-bridge",
   "version": "1.0.0",
   "description": "Simple server to provide a Socket.io interface to an MQTT broker",
-  "main": "index.js",
+  "main": "mongo.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node mongo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
