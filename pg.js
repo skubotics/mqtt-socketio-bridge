@@ -115,7 +115,7 @@ async function main() {
     await fetchAllRecords();
 
     // Delete all rows (if needed)
-    // await deleteAllRows();
+    await deleteAllRows();
 }
 
 main().catch(err => {
