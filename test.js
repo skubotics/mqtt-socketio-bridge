@@ -123,9 +123,9 @@ async function main() {
         // await fetchAllRecords();
 
         // Optionally delete all rows
-        await deleteAllRows();
+        // await deleteAllRows();
 
-        // await alterColumnValueToVarchar();
+        await alterColumnValueToVarchar();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
