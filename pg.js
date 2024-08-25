@@ -119,8 +119,6 @@ app.post('/history', async (req, res) => {
         return res.status(400).send("No device IDs provided.");
     }
 
-    const offset = (page - 1) * limit;
-
     try {
         const client = await pool.connect();
 
@@ -140,23 +138,21 @@ app.post('/history', async (req, res) => {
             query += ` AND time <= $2`;
         }
 
-        // Add sorting and pagination
-        query += ` ORDER BY device ASC, time DESC LIMIT $4 OFFSET $5`;
+        // Add sorting
+        query += ` ORDER BY device ASC, time DESC`;
 
         // Prepare the values for the query
         const values = [deviceIds];
         if (startDate && endDate) {
-            values.push(new Date(startDate), new Date(endDate), limit, offset);
+            values.push(new Date(startDate), new Date(endDate));
         } else if (startDate || endDate) {
-            values.push(new Date(startDate || endDate), limit, offset);
-        } else {
-            values.push(limit, offset);
+            values.push(new Date(startDate || endDate));
         }
 
         // Execute the query
         const result = await client.query(query, values);
 
-        // Group results by device
+        // Group results by device and paginate in JavaScript
         const groupedData = {};
         result.rows.forEach(row => {
             if (!groupedData[row.device]) {
@@ -165,10 +161,10 @@ app.post('/history', async (req, res) => {
             groupedData[row.device].push({ time: row.time, value: row.value });
         });
 
-        // Convert grouped data into desired output format
+        // Apply pagination to each device's data
         const records = Object.keys(groupedData).map(device => ({
             device: device,
-            data: groupedData[device].slice(0, limit)
+            data: groupedData[device].slice((page - 1) * limit, page * limit)
         }));
 
         res.json(records);
