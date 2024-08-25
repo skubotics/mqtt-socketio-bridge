@@ -121,5 +121,6 @@ async function main() {
 main().catch(err => {
     console.error('Error in main execution:', err.stack);
 }).finally(() => {
+    console.log('Completed')
     client.end(); // Ensure the client is always ended
 });
