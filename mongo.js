@@ -1,3 +1,5 @@
+// "mongodb": "^6.7.0",
+
 require('dotenv').config();
 const mqtt = require('mqtt');
 const express = require('express');
