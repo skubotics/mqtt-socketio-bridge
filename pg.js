@@ -126,6 +126,7 @@ app.post('/history', async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
+        // Construct the WHERE clause based on optional parameters
         let whereConditions = [];
         if (deviceIds.length > 0) {
             whereConditions.push(`device IN (${deviceIds.map(id => `'${id}'`).join(', ')})`);
@@ -139,16 +140,19 @@ app.post('/history', async (req, res) => {
 
         const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
+        // Define the SQL statement to fetch records with pagination
         const fetchQuery = `
         SELECT device, time, value
         FROM data
         ${whereClause}
         ORDER BY device ASC, time DESC
         LIMIT $1 OFFSET $2;
-        `;
+      `;
 
+        // Execute the SQL statement to fetch records
         const { rows: records } = await client.query(fetchQuery, [limit, offset]);
 
+        // Group records by device and format the response
         const groupedRecords = records.reduce((acc, record) => {
             if (!acc[record.device]) {
                 acc[record.device] = [];
@@ -157,9 +161,10 @@ app.post('/history', async (req, res) => {
             return acc;
         }, {});
 
-        const response = Object.keys(groupedRecords).map(device => ({
-            device,
-            data: groupedRecords[device]
+        // Ensure all requested devices are included, even if they have no data
+        const response = deviceIds.map(deviceId => ({
+            device: deviceId,
+            data: groupedRecords[deviceId] || []
         }));
 
         res.json(response);
@@ -168,6 +173,7 @@ app.post('/history', async (req, res) => {
         res.status(500).send("Failed to retrieve data");
     }
 });
+
 
 http.listen(port, function () {
     console.log("Server listening on port " + port);
