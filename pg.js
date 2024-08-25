@@ -113,11 +113,7 @@ app.delete('/cleardb', async (req, res) => {
 });
 
 app.post('/history', async (req, res) => {
-    const deviceIds = req.body.deviceIds;
-    const page = parseInt(req.body.page) || 1;
-    const limit = parseInt(req.body.limit) || 30;
-    const startDate = req.body.startDate ? new Date(req.body.startDate) : null;
-    const endDate = req.body.endDate ? new Date(req.body.endDate) : null;
+    const { deviceIds, page = 1, limit = 30, startDate, endDate } = req.body;
 
     if (!deviceIds || deviceIds.length === 0) {
         return res.status(400).send("No device IDs provided.");
@@ -126,57 +122,61 @@ app.post('/history', async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
-        // Construct the WHERE clause based on optional parameters
-        let whereConditions = [];
-        if (deviceIds.length > 0) {
-            whereConditions.push(`device IN (${deviceIds.map(id => `'${id}'`).join(', ')})`);
-        }
-        if (startDate) {
-            whereConditions.push(`time >= '${startDate.toISOString()}'`);
-        }
-        if (endDate) {
-            whereConditions.push(`time <= '${endDate.toISOString()}'`);
-        }
+        const client = await pool.connect();
 
-        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-        // Define the SQL statement to fetch records with pagination
-        const fetchQuery = `
+        // Construct the base query
+        let query = `
         SELECT device, time, value
-        FROM data
-        ${whereClause}
-        ORDER BY device ASC, time DESC
-        LIMIT $1 OFFSET $2;
+        FROM device_data
+        WHERE device = ANY($1)
       `;
 
-        // Execute the SQL statement to fetch records
-        const { rows: records } = await client.query(fetchQuery, [limit, offset]);
+        // Add date filtering if provided
+        if (startDate && endDate) {
+            query += ` AND time BETWEEN $2 AND $3`;
+        } else if (startDate) {
+            query += ` AND time >= $2`;
+        } else if (endDate) {
+            query += ` AND time <= $2`;
+        }
 
-        // Debugging: Log fetched records
-        console.log("Fetched records:", records);
+        // Add sorting and pagination
+        query += ` ORDER BY device ASC, time DESC LIMIT $4 OFFSET $5`;
 
-        // Group records by device
-        const groupedRecords = records.reduce((acc, record) => {
-            if (!acc[record.device]) {
-                acc[record.device] = [];
+        // Prepare the values for the query
+        const values = [deviceIds];
+        if (startDate && endDate) {
+            values.push(new Date(startDate), new Date(endDate), limit, offset);
+        } else if (startDate || endDate) {
+            values.push(new Date(startDate || endDate), limit, offset);
+        } else {
+            values.push(limit, offset);
+        }
+
+        // Execute the query
+        const result = await client.query(query, values);
+
+        // Group results by device
+        const groupedData = {};
+        result.rows.forEach(row => {
+            if (!groupedData[row.device]) {
+                groupedData[row.device] = [];
             }
-            acc[record.device].push({ time: record.time, value: record.value });
-            return acc;
-        }, {});
+            groupedData[row.device].push({ time: row.time, value: row.value });
+        });
 
-        // Debugging: Log grouped records
-        console.log("Grouped records:", groupedRecords);
-
-        // Create response ensuring all requested devices are included
-        const response = deviceIds.map(deviceId => ({
-            device: deviceId,
-            data: groupedRecords[deviceId] || []
+        // Convert grouped data into desired output format
+        const records = Object.keys(groupedData).map(device => ({
+            device: device,
+            data: groupedData[device].slice(0, limit)
         }));
 
-        res.json(response);
+        res.json(records);
     } catch (err) {
         console.error("Error fetching data from PostgreSQL:", err);
         res.status(500).send("Failed to retrieve data");
+    } finally {
+        client.release();
     }
 });
 
