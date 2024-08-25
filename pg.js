@@ -152,6 +152,9 @@ app.post('/history', async (req, res) => {
         // Execute the SQL statement to fetch records
         const { rows: records } = await client.query(fetchQuery, [limit, offset]);
 
+        // Debugging: Log fetched records
+        console.log("Fetched records:", records);
+
         // Group records by device
         const groupedRecords = records.reduce((acc, record) => {
             if (!acc[record.device]) {
@@ -160,6 +163,9 @@ app.post('/history', async (req, res) => {
             acc[record.device].push({ time: record.time, value: record.value });
             return acc;
         }, {});
+
+        // Debugging: Log grouped records
+        console.log("Grouped records:", groupedRecords);
 
         // Create response ensuring all requested devices are included
         const response = deviceIds.map(deviceId => ({
