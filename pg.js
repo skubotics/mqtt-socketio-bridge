@@ -65,7 +65,7 @@ mqttClient.on('message', async function (topic, payload) {
             const insertQuery = `
                 INSERT INTO data (device, value, time)
                 VALUES
-                ${documents.map(record => `('${record.device}', ${record.value}, '${record.time}')`).join(', ')}
+                ${documents.map(record => `('${record.device}', '${record.value}', '${record.time}')`).join(', ')}
             `;
 
             try {
