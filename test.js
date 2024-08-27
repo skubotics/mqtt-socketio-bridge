@@ -166,29 +166,41 @@ async function getRDSUsedStorage() {
         const dbInstanceIdentifier = process.env.RDS_ENTITY;
         const params = { DBInstanceIdentifier: dbInstanceIdentifier };
         const data = await rds.describeDBInstances(params).promise();
-        
+
         const allocatedStorage = data.DBInstances[0].AllocatedStorage; // In GB
 
-        // Assume an example SQL query to get the free storage space in bytes.
-        // This will require a connection to the RDS database.
-        const freeSpaceQuery = `SELECT pg_size_pretty(pg_total_relation_size('pg_database')) AS free_space;`;
+        // Query to get the total database size
+        const totalDatabaseSizeQuery = `
+            SELECT pg_size_pretty(pg_database_size(current_database())) AS used_space;
+        `;
 
-        const res = await client.query(freeSpaceQuery);
-        const freeSpace = res.rows[0].free_space; // Adjust this depending on your query's result
+        const res = await client.query(totalDatabaseSizeQuery);
+        const usedSpace = res.rows[0].used_space; // This will be in a human-readable format
 
-        // Convert freeSpace to GB (if necessary)
-        const freeSpaceInGB = parseFloat(freeSpace) / (1024 * 1024 * 1024); // Assuming freeSpace is in bytes
+        console.log('Used Storage:', usedSpace);
 
-        // Calculate used storage
-        const usedStorage = allocatedStorage - freeSpaceInGB;
+        // Since the `used_space` from `pg_database_size` might be in a human-readable format (e.g., '32 MB'),
+        // you might need to parse it if you want to compare it numerically with `allocatedStorage`.
 
-        console.log('Used Storage (GB):', usedStorage);
+        // Example (simple parsing might be necessary):
+        const usedSpaceInGB = parseFloat(usedSpace) / 1024; // This assumes usedSpace is returned in MB
 
-        return usedStorage;
+        console.log('Used Storage (GB):', usedSpaceInGB);
+
+        // Calculate free space
+        const freeSpaceInGB = allocatedStorage - usedSpaceInGB;
+
+        console.log('Free Storage (GB):', freeSpaceInGB);
+
+        return {
+            usedSpace: usedSpaceInGB,
+            freeSpace: freeSpaceInGB
+        };
     } catch (err) {
         console.error('Error calculating RDS used storage:', err.stack);
     }
 }
+
 
 // Main function to orchestrate the operations
 async function main() {
