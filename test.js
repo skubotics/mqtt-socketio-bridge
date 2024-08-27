@@ -1,5 +1,11 @@
 require('dotenv').config();
+const AWS = require('aws-sdk');
 const { Client } = require('pg');
+
+// Configure the AWS SDK with the appropriate region and credentials
+const rds = new AWS.RDS({
+    region: 'ap-south-1', // e.g., 'us-east-1'
+});
 
 // Create a new client instance with configuration from environment variables
 const client = new Client({
@@ -140,6 +146,69 @@ async function calculateTableSize() {
     }
 }
 
+async function getTotalRDSAllocatedStorage() {
+    try {
+        const dbInstanceIdentifier = 'your-db-instance-identifier';
+        const params = { DBInstanceIdentifier: dbInstanceIdentifier };
+        const data = await rds.describeDBInstances(params).promise();
+        const allocatedStorage = data.DBInstances[0].AllocatedStorage; // In GB
+        console.log('Total Allocated Storage (GB):', allocatedStorage);
+        return allocatedStorage;
+    } catch (err) {
+        console.error('Error fetching RDS allocated storage:', err.stack);
+    }
+}
+
+async function getRDSUsedStorage() {
+    try {
+        const dbInstanceIdentifier = 'your-db-instance-identifier';
+        const params = { DBInstanceIdentifier: dbInstanceIdentifier };
+        const data = await rds.describeDBInstances(params).promise();
+        
+        const allocatedStorage = data.DBInstances[0].AllocatedStorage; // In GB
+
+        // Assume an example SQL query to get the free storage space in bytes.
+        // This will require a connection to the RDS database.
+        const freeSpaceQuery = `SELECT pg_size_pretty(pg_total_relation_size('pg_database')) AS free_space;`;
+
+        // Execute the query (you need a connection to your RDS database to run this)
+        const client = new Client({ /* Your DB connection config */ });
+        await client.connect();
+        const res = await client.query(freeSpaceQuery);
+        const freeSpace = res.rows[0].free_space; // Adjust this depending on your query's result
+
+        // Convert freeSpace to GB (if necessary)
+        const freeSpaceInGB = parseFloat(freeSpace) / (1024 * 1024 * 1024); // Assuming freeSpace is in bytes
+
+        // Calculate used storage
+        const usedStorage = allocatedStorage - freeSpaceInGB;
+
+        console.log('Used Storage (GB):', usedStorage);
+
+        return usedStorage;
+    } catch (err) {
+        console.error('Error calculating RDS used storage:', err.stack);
+    }
+}
+
+async function getRDSRemainingSpace() {
+    try {
+        // Reuse the getTotalRDSAllocatedStorage function to get the allocated storage
+        const allocatedStorage = await getTotalRDSAllocatedStorage();
+
+        // Reuse the getRDSUsedStorage function to get the used storage
+        const usedStorage = await getRDSUsedStorage();
+
+        // Calculate remaining space
+        const remainingSpace = allocatedStorage - usedStorage;
+
+        console.log('Remaining Space (GB):', remainingSpace);
+
+        return remainingSpace;
+    } catch (err) {
+        console.error('Error calculating RDS remaining space:', err.stack);
+    }
+}
 
 // Main function to orchestrate the operations
 async function main() {
@@ -152,8 +221,6 @@ async function main() {
         // Insert multiple values
         // const records = [
         //     { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
-        //     { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
-        //     { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
         // ];
         // await insertMultipleValues(records);
 
@@ -167,6 +234,9 @@ async function main() {
 
         await countAllRecords();
         await calculateTableSize();
+        await getTotalRDSAllocatedStorage();
+        await getRDSUsedStorage();
+        await getRDSRemainingSpace();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
