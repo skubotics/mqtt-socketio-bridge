@@ -70,7 +70,7 @@ mqttClient.on('message', async function (topic, payload) {
 
             try {
                 await client.query(insertQuery);
-                console.log("Data inserted into PostgreSQL");
+                // console.log("Data inserted into PostgreSQL");
             } catch (err) {
                 console.error("Failed to insert data into PostgreSQL", err);
             }
