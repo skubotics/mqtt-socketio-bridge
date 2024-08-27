@@ -89,6 +89,25 @@ async function fetchAllRecords() {
     }
 }
 
+async function countAllRecords() {
+    try {
+        // Define the SQL statement to count all records
+        const countQuery = `SELECT COUNT(*) AS total FROM data;`;
+
+        // Execute the SQL statement to count all records
+        const res = await client.query(countQuery);
+        const totalCount = res.rows[0].total; // Get the total count from the result
+
+        console.log('Total records:', totalCount);
+
+        return totalCount; // Return the total count
+
+    } catch (err) {
+        console.error('Error counting records:', err.stack);
+    }
+}
+
+
 async function alterColumnValueToVarchar() {
     try {
         // Define the SQL statement to alter the column type
@@ -112,11 +131,11 @@ async function main() {
         // await createTable();
 
         // Insert multiple values
-        const records = [
-            { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
-            { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
-            { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
-        ];
+        // const records = [
+        //     { device: "CPU222#ADC222#CH12", value: 3.42, time: "2024-08-25T16:50:29Z" },
+        //     { device: "CPU223#ADC223#CH13", value: 5.67, time: "2024-08-26T16:50:29Z" },
+        //     { device: "CPU224#ADC224#CH14", value: 7.89, time: "2024-08-27T16:50:29Z" }
+        // ];
         // await insertMultipleValues(records);
 
         // Fetch all records
@@ -125,7 +144,9 @@ async function main() {
         // Optionally delete all rows
         // await deleteAllRows();
 
-        await alterColumnValueToVarchar();
+        // await alterColumnValueToVarchar();
+
+        await countAllRecords();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
