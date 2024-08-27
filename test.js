@@ -122,6 +122,25 @@ async function alterColumnValueToVarchar() {
     }
 }
 
+async function calculateTableSize() {
+    try {
+        // Define the SQL statement to calculate the size of the table
+        const sizeQuery = `SELECT pg_size_pretty(pg_table_size('data')) AS size;`;
+
+        // Execute the SQL statement to calculate the table size
+        const res = await client.query(sizeQuery);
+        const tableSize = res.rows[0].size; // Get the table size from the result
+
+        console.log('Table size:', tableSize);
+
+        return tableSize; // Return the table size
+
+    } catch (err) {
+        console.error('Error calculating table size:', err.stack);
+    }
+}
+
+
 // Main function to orchestrate the operations
 async function main() {
     try {
@@ -147,6 +166,7 @@ async function main() {
         // await alterColumnValueToVarchar();
 
         await countAllRecords();
+        await calculateTableSize();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
