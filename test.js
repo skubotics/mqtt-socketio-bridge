@@ -4,7 +4,7 @@ const { Client } = require('pg');
 
 // Configure the AWS SDK with the appropriate region and credentials
 const rds = new AWS.RDS({
-    region: 'ap-south-1', // e.g., 'us-east-1'
+    region: process.env.AWS_REGION, // e.g., 'us-east-1'
 });
 
 // Create a new client instance with configuration from environment variables
@@ -148,7 +148,7 @@ async function calculateTableSize() {
 
 async function getTotalRDSAllocatedStorage() {
     try {
-        const dbInstanceIdentifier = 'your-db-instance-identifier';
+        const dbInstanceIdentifier = process.env.RDS_ENTITY;
         const params = { DBInstanceIdentifier: dbInstanceIdentifier };
         const data = await rds.describeDBInstances(params).promise();
         const allocatedStorage = data.DBInstances[0].AllocatedStorage; // In GB
@@ -161,7 +161,7 @@ async function getTotalRDSAllocatedStorage() {
 
 async function getRDSUsedStorage() {
     try {
-        const dbInstanceIdentifier = 'your-db-instance-identifier';
+        const dbInstanceIdentifier = process.env.RDS_ENTITY;
         const params = { DBInstanceIdentifier: dbInstanceIdentifier };
         const data = await rds.describeDBInstances(params).promise();
         
@@ -191,25 +191,6 @@ async function getRDSUsedStorage() {
     }
 }
 
-async function getRDSRemainingSpace() {
-    try {
-        // Reuse the getTotalRDSAllocatedStorage function to get the allocated storage
-        const allocatedStorage = await getTotalRDSAllocatedStorage();
-
-        // Reuse the getRDSUsedStorage function to get the used storage
-        const usedStorage = await getRDSUsedStorage();
-
-        // Calculate remaining space
-        const remainingSpace = allocatedStorage - usedStorage;
-
-        console.log('Remaining Space (GB):', remainingSpace);
-
-        return remainingSpace;
-    } catch (err) {
-        console.error('Error calculating RDS remaining space:', err.stack);
-    }
-}
-
 // Main function to orchestrate the operations
 async function main() {
     try {
@@ -236,7 +217,6 @@ async function main() {
         await calculateTableSize();
         await getTotalRDSAllocatedStorage();
         await getRDSUsedStorage();
-        await getRDSRemainingSpace();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
