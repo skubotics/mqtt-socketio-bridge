@@ -4,7 +4,9 @@ const { Client } = require('pg');
 
 // Configure the AWS SDK with the appropriate region and credentials
 const rds = new AWS.RDS({
-    region: process.env.AWS_REGION, // e.g., 'us-east-1'
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_ACCESS_SECRET,
+    region: process.env.AWS_REGION
 });
 
 // Create a new client instance with configuration from environment variables
