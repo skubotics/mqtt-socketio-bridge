@@ -173,9 +173,6 @@ async function getRDSUsedStorage() {
         // This will require a connection to the RDS database.
         const freeSpaceQuery = `SELECT pg_size_pretty(pg_total_relation_size('pg_database')) AS free_space;`;
 
-        // Execute the query (you need a connection to your RDS database to run this)
-        const client = new Client({ /* Your DB connection config */ });
-        await client.connect();
         const res = await client.query(freeSpaceQuery);
         const freeSpace = res.rows[0].free_space; // Adjust this depending on your query's result
 
