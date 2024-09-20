@@ -101,10 +101,19 @@ app.get('/', function (req, res) {
 });
 
 app.delete('/cleardb', async (req, res) => {
+    const deviceParam = req.query.device; // Get the device parameter from the query
+    const devices = deviceParam ? decodeURIComponent(deviceParam).split('#') : []; // Decode and split using #
+
+    if (devices.length === 0) {
+        return res.status(400).send("No devices specified for deletion.");
+    }
+
     try {
-        const deleteQuery = `DELETE FROM data;`;
-        const result = await client.query(deleteQuery);
-        console.log(`${result.rowCount} rows were deleted`);
+        // Create a parameterized query to avoid SQL injection
+        const deleteQuery = `DELETE FROM data WHERE device = ANY($1::text[])`;
+        const result = await client.query(deleteQuery, [devices]);
+
+        console.log(`${result.rowCount} rows were deleted for devices: ${devices.join(', ')}`);
         res.send(`${result.rowCount} rows were deleted`);
     } catch (err) {
         console.error("Error deleting rows:", err);
