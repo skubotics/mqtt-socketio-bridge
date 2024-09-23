@@ -122,7 +122,7 @@ app.delete('/cleardb', async (req, res) => {
 });
 
 app.post('/history', async (req, res) => {
-    const { deviceIds, page = 1, limit = 30, startDate, endDate } = req.body;
+    const { deviceIds, page = 1, limit = 30, startTime, endTime } = req.body;
 
     if (!deviceIds || deviceIds.length === 0) {
         return res.status(400).send("No device IDs provided.");
@@ -138,15 +138,15 @@ app.post('/history', async (req, res) => {
 
         // Add date filtering if provided
         const values = [deviceIds];
-        if (startDate && endDate) {
+        if (startTime && endTime) {
             query += ` AND time BETWEEN $2 AND $3`;
-            values.push(new Date(startDate), new Date(endDate));
-        } else if (startDate) {
+            values.push(new Date(startTime), new Date(endTime));
+        } else if (startTime) {
             query += ` AND time >= $2`;
-            values.push(new Date(startDate));
-        } else if (endDate) {
+            values.push(new Date(startTime));
+        } else if (endTime) {
             query += ` AND time <= $2`;
-            values.push(new Date(endDate));
+            values.push(new Date(endTime));
         }
 
         // Add sorting
