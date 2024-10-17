@@ -214,7 +214,7 @@ async function getRDSUsedStorage() {
 // Main function to orchestrate the operations
 async function main() {
     try {
-        await client.connect(); // Connect to the database once
+        // await client.connect(); // Connect to the database once
 
         // Create the table
         await createTable();
