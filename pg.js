@@ -43,9 +43,9 @@ mqttClient.on('message', async function (topic, payload) {
     if (topic === MQTT_TOPIC) {
 
         incomingData = payload.toString();
-        let pattern = /^CPU\d+#ADC\d+#(((-?\d+(\.\d+)?|[Xx]),)*(-?\d+(\.\d+)?|[Xx]))#(\d{4}-\d{2}-\d{2})#(\d{2}:\d{2}:\d{2})$/;
+        let pattern1 = /^CPU\d+#ADC\d+#(((-?\d+(\.\d+)?|[Xx]),)*(-?\d+(\.\d+)?|[Xx]))#(\d{4}-\d{2}-\d{2})#(\d{2}:\d{2}:\d{2})$/;
 
-        if (pattern.test(incomingData)) {
+        if (pattern1.test(incomingData)) {
             const [cpu, adc, values, date, time] = incomingData.split('#');
             const valuesList = values.split(',');
             const result = [];
@@ -72,19 +72,52 @@ mqttClient.on('message', async function (topic, payload) {
                 await client.query(insertQuery);
                 // console.log("Data inserted into PostgreSQL");
             } catch (err) {
-                console.error("Failed to insert data into PostgreSQL", err);
+                console.error("Failed to insert data into PostgreSQL => ".insertQuery, err);
             }
         } else {
             io.emit('mqtt', { 'topic': topic, 'payload': incomingData });
         }
+
+        // if (pattern2.test(incomingData)) {
+        //     const [cpu, adc, values, date, time] = incomingData.split('#');
+        //     const valuesList = values.split(',');
+        //     const result = [];
+        //     const documents = [];
+
+        //     valuesList.forEach((value, index) => {
+        //         result.push(`${cpu}#${adc}#CH${index + 1}#${value}#${date}T${time}Z`);
+        //         documents.push({
+        //             device: `${cpu}#${adc}#CH${index + 1}`,
+        //             value: value,
+        //             time: `${date}T${time}Z`
+        //         });
+        //     });
+
+        //     io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(result) });
+
+        //     const insertQuery = `
+        //         INSERT INTO data (device, value, time)
+        //         VALUES
+        //         ${documents.map(record => `('${record.device}', '${record.value}', '${record.time}')`).join(', ')}
+        //     `;
+
+        //     try {
+        //         await client.query(insertQuery);
+        //         // console.log("Data inserted into PostgreSQL");
+        //     } catch (err) {
+        //         console.error("Failed to insert data into PostgreSQL", err);
+        //     }
+        // } else {
+        //     io.emit('mqtt', { 'topic': topic, 'payload': incomingData });
+        // }
     }
 });
 
 io.on('connection', function (sock) {
-    console.log("New connection from " + sock.id);
+    // console.log("New connection from " + sock.id);
 
     sock.on('disconnect', function () {
-        console.log("Socket disconnected: " + sock.id);
+        // console.log("Socket disconnected: " + sock.id);
     });
 });
 
