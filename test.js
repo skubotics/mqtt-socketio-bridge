@@ -233,10 +233,10 @@ async function main() {
 
         // await alterColumnValueToVarchar();
 
-        await countAllRecords();
-        await calculateTableSize();
-        await getTotalRDSAllocatedStorage();
-        await getRDSUsedStorage();
+        // await countAllRecords();
+        // await calculateTableSize();
+        // await getTotalRDSAllocatedStorage();
+        // await getRDSUsedStorage();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
