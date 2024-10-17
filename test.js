@@ -28,7 +28,7 @@ async function createTable() {
         console.log('Connected to PostgreSQL RDS!');
 
         // Define the SQL statement to create the table
-        const createTableQuery = `
+        const createTableQuery1 = `
             CREATE TABLE IF NOT EXISTS data (
                 id SERIAL PRIMARY KEY,
                 device VARCHAR(20) NOT NULL,
@@ -37,8 +37,17 @@ async function createTable() {
             );
         `;
 
+        const createTableQuery2 = `
+            CREATE TABLE IF NOT EXISTS axledata (
+                id SERIAL PRIMARY KEY,
+                device VARCHAR(20) NOT NULL,
+                value VARCHAR NOT NULL,
+                time TIMESTAMPTZ NOT NULL
+            );
+        `;
+
         // Execute the SQL statement to create the table
-        await client.query(createTableQuery);
+        await client.query(createTableQuery2);
         console.log('Table "data" created successfully.');
 
     } catch (err) {
@@ -208,7 +217,7 @@ async function main() {
         await client.connect(); // Connect to the database once
 
         // Create the table
-        // await createTable();
+        await createTable();
 
         // Insert multiple values
         // const records = [
