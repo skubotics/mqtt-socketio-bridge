@@ -214,10 +214,10 @@ async function getRDSUsedStorage() {
 // Main function to orchestrate the operations
 async function main() {
     try {
-        // await client.connect(); // Connect to the database once
+        await client.connect(); // Connect to the database once
 
         // Create the table
-        await createTable();
+        // await createTable();
 
         // Insert multiple values
         // const records = [
@@ -233,10 +233,10 @@ async function main() {
 
         // await alterColumnValueToVarchar();
 
-        // await countAllRecords();
-        // await calculateTableSize();
-        // await getTotalRDSAllocatedStorage();
-        // await getRDSUsedStorage();
+        await countAllRecords();
+        await calculateTableSize();
+        await getTotalRDSAllocatedStorage();
+        await getRDSUsedStorage();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
