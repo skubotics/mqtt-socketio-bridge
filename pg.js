@@ -77,38 +77,20 @@ mqttClient.on('message', async function (topic, payload) {
             }
         } else if (pattern2.test(incomingData)) {
             // Split the incoming data based on the '#'
-            const [_, middleData, dateTime] = incomingData.split('#');
-            const [date, time] = dateTime.split('#'); // Split to get date and time
+            const [_, data, date, time] = incomingData.split('#');
 
             // Use the fixed device value
             const defaultDevice = 'CPU9#ADC1#CH1';
 
-            // The value will be the middle data, which can be anything
-            const result = [];
-            const documents = [];
-
-            // Split the middleData by commas for multiple entries
-            const valuesList = middleData.split(',');
-
-            // Process each value
-            valuesList.forEach((value) => {
-                result.push(`${defaultDevice}#${value}#${date}T${time}Z`);
-                documents.push({
-                    device: defaultDevice,
-                    value: value,
-                    time: `${date}T${time}Z`
-                });
-            });
 
             // Emit the data
-            io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(result) });
+            io.emit('mqtt', { 'topic': topic, 'payload': incomingData, 'data': JSON.stringify(data) });
 
             // Create the insert query
             const insertQuery = `
                 INSERT INTO axledata (device, value, time)
                 VALUES
-                ${documents.map(record => `('${record.device}', '${record.value}', '${record.time}')`).join(', ')}
-            `;
+                ('${defaultDevice}', '${data}', '${date}T${time}Z}')`;
 
             // Execute the insert query
             try {
