@@ -127,7 +127,13 @@ app.get('/', function (req, res) {
 
 app.delete('/cleardb', async (req, res) => {
     const deviceParam = req.query.device; // Get the device parameter from the query
-    const devices = deviceParam ? decodeURIComponent(deviceParam).split('#') : []; // Decode and split using #
+
+    if (!deviceParam) {
+        return res.status(400).send("No devices specified for deletion.");
+    }
+
+    // Decode the device parameter (in case it's URL encoded) and split by commas
+    const devices = decodeURIComponent(deviceParam).split(',');
 
     if (devices.length === 0) {
         return res.status(400).send("No devices specified for deletion.");
