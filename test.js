@@ -24,8 +24,6 @@ const client = new Client({
 // Function to create a table
 async function createTable() {
     try {
-        await client.connect();
-        console.log('Connected to PostgreSQL RDS!');
 
         // Define the SQL statement to create the table
         const createTableQuery1 = `
@@ -90,10 +88,10 @@ async function deleteAllRows() {
 }
 
 // Function to fetch all records from the table
-async function fetchAllRecords() {
+async function fetchAllRecords(tableName, limit) {
     try {
         // Define the SQL statement to fetch all records
-        const fetchQuery = `SELECT * FROM data;`;
+        const fetchQuery = `SELECT * FROM ${tableName} LIMIT ${limit};`;
 
         // Execute the SQL statement to fetch all records
         const res = await client.query(fetchQuery);
@@ -215,6 +213,7 @@ async function getRDSUsedStorage() {
 async function main() {
     try {
         await client.connect(); // Connect to the database once
+        console.log('Connected to PostgreSQL RDS!');
 
         // Create the table
         // await createTable();
@@ -226,17 +225,17 @@ async function main() {
         // await insertMultipleValues(records);
 
         // Fetch all records
-        // await fetchAllRecords();
+        await fetchAllRecords('axledata', 100);
 
         // Optionally delete all rows
         // await deleteAllRows();
 
         // await alterColumnValueToVarchar();
 
-        await countAllRecords();
-        await calculateTableSize();
-        await getTotalRDSAllocatedStorage();
-        await getRDSUsedStorage();
+        // await countAllRecords();
+        // await calculateTableSize();
+        // await getTotalRDSAllocatedStorage();
+        // await getRDSUsedStorage();
 
     } catch (err) {
         console.error('Error in main execution:', err.stack);
