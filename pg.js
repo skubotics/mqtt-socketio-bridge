@@ -149,7 +149,7 @@ app.delete('/cleardb', async (req, res) => {
         if (result.rowCount > 0) {
             res.status(200).send(`${result.rowCount} rows were deleted`);
         } else {
-            res.status(204).send(); // No Content
+            res.status(200).send('No matching rows found for deletion'); // No Content
         }
     } catch (err) {
         console.error("Error deleting rows:", err);
@@ -227,7 +227,7 @@ app.delete('/axle-cleardb', async (req, res) => {
         if (result.rowCount > 0) {
             res.status(200).send(`${result.rowCount} rows were deleted from axledata`);
         } else {
-            res.status(204).send(); // No Content
+            res.status(200).send('No matching rows found for deletion.'); // No Content
         }
     } catch (err) {
         console.error("Error deleting rows in axledata:", err);
